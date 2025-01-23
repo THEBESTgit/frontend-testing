@@ -1,94 +1,111 @@
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-} from '@mui/material';
-import React, { useState } from 'react';
-import { data as products } from '../../utils/product';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogActions, DialogContent, DialogTitle, Button, TextField, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
+import axios from 'axios';
 
-const OrderCreateDialog = ({ open, handleClose, handleSubmit, selectedOrder = null }) => {
-  const [productId, setProductId] = useState(selectedOrder?.productId || '');
-  const [units, setUnits] = useState(selectedOrder?.units || '');
-  const [unitBonus, setUnitBonus] = useState(selectedOrder?.unitBonus || '');
-  const [promo, setPromo] = useState(selectedOrder?.promo || '');
-  const [totalPrice, setTotalPrice] = useState(selectedOrder?.totalPrice || '');
+const OrderCreateDialog = ({ open, handleClose, handleSubmit }) => {
+  const [selectedProductName, setSelectedProductName] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [bonus, setBonus] = useState(0);
+  const [promo, setPromo] = useState(0);
+  const [products, setProducts] = useState([]);
 
-  const handleFormSubmit = () => {
-    handleSubmit({ productId, units, bonus, promo, totalPrice });
-    handleClose();
+  // Fetch products when the dialog is open
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get('http://localhost:8080/products');
+        setProducts(response.data);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    };
+
+    if (open) {
+      fetchProducts();
+    }
+  }, [open]);
+
+  // Handle form submit
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+
+    // Obtener el producto completo según la selección del producto
+    const selectedProductData = products.find(p => p.name === selectedProductName);
+
+    const newOrderData = {
+      product: selectedProductData,  // Enviar el producto completo
+      units: quantity,
+      bonus,
+      promo,
+      totalPrice: calculateTotalPrice(selectedProductData),
+      products: [{ name: selectedProductData.name, price: selectedProductData.price }] // Guardar el producto con nombre y precio
+    };
+
+    handleSubmit(newOrderData); // Enviar la nueva orden con el producto completo
+    handleClose(); // Cerrar el diálogo
+  };
+
+  const calculateTotalPrice = (product) => {
+    // Implementa la lógica para calcular el precio total
+    return product ? product.price * quantity : 0;
   };
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle>Create Order</DialogTitle>
+      <DialogTitle>Crear Pedido</DialogTitle>
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <FormControl fullWidth variant='outlined'>
-            <InputLabel>Product</InputLabel>
-            <Select label='Product' name='productId' value={productId} onChange={(e) => setProductId(e.target.value)}>
-              {products.map((product) => (
-                <MenuItem key={product.id} value={product.id}>
-                  {product.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            label='Units'
-            name='units'
-            type='number'
-            value={units}
-            onChange={(e) => setUnits(e.target.value)}
-            fullWidth
-            variant='outlined'
-          />
-          <TextField
-            label='Bonus'
-            name='bonus'
-            type='number'
-            value={unitBonus}
-            onChange={(e) => setUnitBonus(e.target.value)}
-            fullWidth
-            variant='outlined'
-          />
-          <TextField
-            label='Promo'
-            name='promo'
-            type='number'
-            value={promo}
-            onChange={(e) => setPromo(e.target.value)}
-            fullWidth
-            variant='outlined'
-          />
-          <TextField
-            label='Total Price'
-            name='totalPrice'
-            type='number'
-            disabled
-            value={totalPrice}
-            fullWidth
-            variant='outlined'
-          />
-        </Box>
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Producto</InputLabel>
+          <Select
+            value={selectedProductName}
+            onChange={(e) => setSelectedProductName(e.target.value)}
+          >
+            {products.map((product) => (
+              <MenuItem key={product.id} value={product.name}>
+                {product.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TextField
+          label="Cantidad"
+          type="number"
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          fullWidth
+          margin="normal"
+        />
+        <TextField
+          label="Bonus"
+          type="number"
+          value={bonus}
+          onChange={(e) => setBonus(e.target.value)}
+          fullWidth
+          margin="normal"
+        />
+        <TextField
+          label="Promo"
+          type="number"
+          value={promo}
+          onChange={(e) => setPromo(e.target.value)}
+          fullWidth
+          margin="normal"
+        />
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} color='secondary'>
-          Cancel
-        </Button>
-        <Button onClick={handleFormSubmit} color='primary'>
-          Submit
-        </Button>
+        <Button onClick={handleClose}>Cancelar</Button>
+        <Button onClick={handleFormSubmit}>Guardar</Button>
       </DialogActions>
     </Dialog>
   );
 };
 
 export default OrderCreateDialog;
+
+
+
+
+
+
+
+
